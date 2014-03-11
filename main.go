@@ -8,6 +8,13 @@ import (
 	"time"
 )
 
+const (
+	UP = iota
+	RIGHT
+	DOWN
+	LEFT
+)
+
 type Column struct {
 	I int
 	grid [][]int
@@ -36,6 +43,7 @@ func NewBoard(size int) *Board {
 	return b
 }
 
+//Place the next new piece
 func (b *Board) PlaceRandom() {
 	num := 2
 	if rand.Intn(100) >= 90 {
@@ -51,6 +59,8 @@ func (b *Board) PlaceRandom() {
 	}
 }
 
+//An 'Array' used to generically talk about rows or columns in
+//either direction
 type Iter interface {
 	At(int) int
 	Set(int, int)
@@ -157,6 +167,7 @@ func (b *Board) PrintBoard() {
 		}
 		fmt.Println()
 	}
+	fmt.Println()
 }
 
 func (b *Board) Left() bool {
@@ -199,6 +210,7 @@ func (b *Board) Down() bool {
 	return change
 }
 
+//Produce a new copy of the board
 func (b *Board) Copy() *Board {
 	nb := NewBoard(b.size)
 	nb.score = b.score
@@ -210,6 +222,7 @@ func (b *Board) Copy() *Board {
 	return nb
 }
 
+//Did the player win?
 func (b *Board) CheckWin() bool {
 	for _,r := range b.tiles {
 		for _,v := range r {
@@ -224,22 +237,22 @@ func (b *Board) CheckWin() bool {
 func (b *Board) Round(i int) bool {
 	s := false
 	switch i {
-	case 0:
+	case UP:
 		if b.Up() {
 			b.PlaceRandom()
 			s = true
 		}
-	case 1:
+	case RIGHT:
 		if b.Right() {
 			b.PlaceRandom()
 			s = true
 		}
-	case 2:
+	case DOWN:
 		if b.Down() {
 			b.PlaceRandom()
 			s = true
 		}
-	case 3:
+	case LEFT:
 		if b.Left() {
 			b.PlaceRandom()
 			s = true
@@ -251,6 +264,13 @@ func (b *Board) Round(i int) bool {
 }
 
 func (b *Board) CheckLoss() bool {
+	for _,r := range b.tiles {
+		for _,v := range r {
+			if v == 0 {
+				return false
+			}
+		}
+	}
 	l := b.Copy()
 	if l.Left() {
 		return false
@@ -320,6 +340,37 @@ func (b *Board) Utility() int {
 	return (b.OpenCount() * 4) + (b.Sum() * 6) + b.score
 }
 
+type Solver func() (bool, int)
+
+//Left Down Right Down Left Down Right Down... (surprisingly good)
+func LDRDSolver() (bool, int) {
+	b := NewBoard(4)
+	b.PlaceRandom()
+	b.PlaceRandom()
+	for !b.CheckWin() {
+		a := b.Round(LEFT)
+		//b.PrintBoard()
+		h := b.Round(DOWN)
+		//b.PrintBoard()
+		c := b.Round(RIGHT)
+		//b.PrintBoard()
+		d := b.Round(DOWN)
+		//b.PrintBoard()
+		if !(a || h || c || d) {
+			b.Round(UP)
+			//b.PrintBoard()
+		}
+		if b.CheckLoss() {
+			//fmt.Println("Computer Lost!")
+			//fmt.Printf("Final Score: %d\n", b.score)
+			return false,b.score
+		}
+	}
+	//fmt.Println("Computer won!!")
+	return true,b.score
+}
+
+//Looks for the best next move based on a heuristic
 func BestMoveSolver() (bool, int) {
 	b := NewBoard(4)
 	b.PlaceRandom()
@@ -353,13 +404,15 @@ func BestMoveSolver() (bool, int) {
 	return true, b.score
 }
 
-func PlayN(n int) (int,int,int,int) {
+//Play 'n' rounds of the game using the given solver
+//Returns #wins, best score, worst score, and average score
+func PlayN(n int, slvr Solver) (int,int,int,int) {
 	best := 0
 	worst := math.MaxInt32
 	sum := 0
 	wins := 0
 	for i := 0; i < n; i++ {
-		w,s := BestMoveSolver()
+		w,s := slvr()
 		if w {
 			wins++
 		}
@@ -374,6 +427,7 @@ func PlayN(n int) (int,int,int,int) {
 	return wins,best,worst,sum/n
 }
 
+//Average an array of numbers
 func Aver(l []int) int {
 	sum := 0
 	for _,v := range l {
@@ -382,9 +436,8 @@ func Aver(l []int) int {
 	return sum/len(l)
 }
 
-func main() {
-	runtime.GOMAXPROCS(5)
-	rand.Seed(time.Now().UnixNano())
+//Run a given solver algorithm for a set number of trials
+func RunTrials(slvr Solver) {
 	done := make(chan bool)
 	wins := make([]int,4)
 	bests := make([]int, 4)
@@ -392,7 +445,7 @@ func main() {
 	avs := make([]int, 4)
 	for i := 0; i < 4; i++ {
 		go func(n int) {
-			wins[n],bests[n],worsts[n],avs[n] = PlayN(300)
+			wins[n],bests[n],worsts[n],avs[n] = PlayN(300, slvr)
 			done <- true
 		}(i)
 	}
@@ -406,6 +459,13 @@ func main() {
 	fmt.Printf("Average: %d\n", Aver(avs))
 }
 
+func main() {
+	runtime.GOMAXPROCS(5)
+	rand.Seed(time.Now().UnixNano())
+	RunTrials(LDRDSolver)
+}
+
+//If you just want to play the game...
 func plmain() {
 	rand.Seed(time.Now().UnixNano())
 	b := NewBoard(4)
