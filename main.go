@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"runtime"
 	"math/rand"
+	"math"
 	"time"
 )
 
@@ -219,6 +221,35 @@ func (b *Board) CheckWin() bool {
 	return false
 }
 
+func (b *Board) Round(i int) bool {
+	s := false
+	switch i {
+	case 0:
+		if b.Up() {
+			b.PlaceRandom()
+			s = true
+		}
+	case 1:
+		if b.Right() {
+			b.PlaceRandom()
+			s = true
+		}
+	case 2:
+		if b.Down() {
+			b.PlaceRandom()
+			s = true
+		}
+	case 3:
+		if b.Left() {
+			b.PlaceRandom()
+			s = true
+		}
+	default:
+		fmt.Println("Invalid Key")
+	}
+	return s
+}
+
 func (b *Board) CheckLoss() bool {
 	l := b.Copy()
 	if l.Left() {
@@ -239,7 +270,143 @@ func (b *Board) CheckLoss() bool {
 	return true
 }
 
+func MaxI(l []int) int {
+	var cm, ci int
+	cm = l[0]
+	ci = 0
+	same := true
+	for _,v := range l {
+		if v != cm {
+			same = false
+			break
+		}
+	}
+	if same {
+		return rand.Intn(len(l))
+	}
+	for i := 1; i < len(l); i++ {
+		if l[i] > cm {
+			ci = i
+			cm = l[i]
+		}
+	}
+	return ci
+}
+
+func (b *Board) OpenCount() int {
+	out := 0
+	for _,r := range b.tiles {
+		for _,v := range r {
+			if v == 0 {
+				out++
+			}
+		}
+	}
+	return out
+}
+
+func (b *Board) Sum() int {
+	out := 0
+	for _,r := range b.tiles {
+		for _,v := range r {
+			out += v
+		}
+	}
+	return out
+}
+
+func (b *Board) Utility() int {
+	//return (b.OpenCount() * 10) + b.Sum()
+	return (b.OpenCount() * 4) + (b.Sum() * 6) + b.score
+}
+
+func BestMoveSolver() (bool, int) {
+	b := NewBoard(4)
+	b.PlaceRandom()
+	b.PlaceRandom()
+	opts := make([]int, 4)
+	for !b.CheckWin() {
+		for i := 0; i < 4; i++ {
+			nb := b.Copy()
+			c := nb.Round(i)
+			if !c || nb.CheckLoss() {
+				opts[i] = -1
+			} else {
+				//Initial attempt, score based heuristic
+				//opts[i] = nb.score
+				opts[i] = nb.Utility()
+			}
+		}
+		b.Round(MaxI(opts))
+
+		/*
+		fmt.Println()
+		b.PrintBoard()
+		*/
+
+		if b.CheckLoss() {
+			//fmt.Printf("Computer Lost! Score: %d\n", b.score)
+			return false, b.score
+		}
+	}
+	//fmt.Println("Computer Won!")
+	return true, b.score
+}
+
+func PlayN(n int) (int,int,int,int) {
+	best := 0
+	worst := math.MaxInt32
+	sum := 0
+	wins := 0
+	for i := 0; i < n; i++ {
+		w,s := BestMoveSolver()
+		if w {
+			wins++
+		}
+		if s > best {
+			best = s
+		}
+		if s < worst {
+			worst = s
+		}
+		sum += s
+	}
+	return wins,best,worst,sum/n
+}
+
+func Aver(l []int) int {
+	sum := 0
+	for _,v := range l {
+		sum += v
+	}
+	return sum/len(l)
+}
+
 func main() {
+	runtime.GOMAXPROCS(5)
+	rand.Seed(time.Now().UnixNano())
+	done := make(chan bool)
+	wins := make([]int,4)
+	bests := make([]int, 4)
+	worsts := make([]int, 4)
+	avs := make([]int, 4)
+	for i := 0; i < 4; i++ {
+		go func(n int) {
+			wins[n],bests[n],worsts[n],avs[n] = PlayN(300)
+			done <- true
+		}(i)
+	}
+	for i := 0; i < 4; i++ {
+		<-done
+	}
+
+	fmt.Printf("Wins: %d\n", Aver(wins))
+	fmt.Printf("Best: %d\n", Aver(bests))
+	fmt.Printf("Worst: %d\n", Aver(worsts))
+	fmt.Printf("Average: %d\n", Aver(avs))
+}
+
+func plmain() {
 	rand.Seed(time.Now().UnixNano())
 	b := NewBoard(4)
 	b.PlaceRandom()
@@ -253,21 +420,13 @@ func main() {
 		}
 		switch s[0] {
 			case 'w':
-				if b.Up() {
-					b.PlaceRandom()
-				}
+				b.Round(0)
 			case 'a':
-				if b.Left() {
-					b.PlaceRandom()
-				}
+				b.Round(3)
 			case 's':
-				if b.Down() {
-					b.PlaceRandom()
-				}
+				b.Round(2)
 			case 'd':
-				if b.Right() {
-					b.PlaceRandom()
-				}
+				b.Round(1)
 			default:
 				fmt.Println("Invalid Key")
 		}
