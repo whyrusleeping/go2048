@@ -84,8 +84,8 @@ func Aver(l []int) int {
 //Run a given solver algorithm for a set number of trials
 func RunTrials(slvr Solver, utility UtilityFunc) {
 	done := make(chan bool)
-	num_th := 1
-	run_per := 80
+	num_th := 2
+	run_per := 40
 	wins := make([]int,num_th)
 	bests := make([]int, num_th)
 	worsts := make([]int, num_th)
@@ -114,7 +114,7 @@ func main() {
 		//panic("Whats goin on?")
 	}()
 	fmt.Println("Lookahead Solver")
-	RunTrials(LookaheadSolver, Utility_OpenHeavy)
+	RunTrials(LookaheadSolver, Utility_Score)
 	fmt.Println("Utility Based Solver")
 	RunTrials(BestMoveSolver, Utility_Score)
 	fmt.Println("LDRD Solver")

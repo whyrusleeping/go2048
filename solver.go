@@ -5,64 +5,36 @@ import "fmt"
 type Solver func(*Board, UtilityFunc) (bool, int)
 
 func LookaheadSolver(b *Board, utility UtilityFunc) (bool, int) {
-	opts := make([]int, 4)
-	turn := 0
 	for !b.CheckWin() {
-		turn++
+		opts := make([]int, 4)
 		for i := 0; i < 4; i++ {
 			for j := 0; j < 16; j++ {
 				nb := b.Copy()
 				c := nb.Round(i)
 				if !c || nb.CheckLoss() {
+					break
 				} else {
-					/*
 					//Initial attempt, score based heuristic
-					subo := make([]int, 4)
-					for j := 0; j < 4; j++ {
-						for try := 0; try < 16; try++ {
-							onb := b.Copy()
-							w := onb.Round(j)
-							if !w {
-								subo[j] = -1
-							} else {
-								subo[j] += utility(onb)
-							}
+					for k := 0; k < 4; k++ {
+						snb := nb.Copy()
+						mov := snb.Round(k)
+						if mov {
+							opts[i] += utility(snb)
 						}
 					}
-					opts[i] = Aver(subo)
-					*/
-					opts[i] += utility(nb)
 				}
 			}
 		}
-		var act bool
-		var i int
-		fmt.Println(opts)
-		for i = 0; i < 4; i++ {
-			choice := MaxI(opts)
-			act = b.Round(choice)
-			if !act {
-				opts[choice] = 0
-			} else {
-				break
-			}
-		}
-		if i == 4 {
-			fmt.Println("Something is very wrong...")
-			b.PrintBoard()
-			for {}
-		}
+		act := b.Round(MaxI(opts))
 		if !act {
 			fmt.Println("Chose bad move...")
 			fmt.Println(opts)
+			fmt.Println(MaxI(opts))
+			b.PrintBoard()
 		}
 
 		if b.CheckLoss() {
 			return false, b.score
-		}
-		if turn % 1000 == 0 {
-			fmt.Println(turn)
-			b.PrintBoard()
 		}
 	}
 	return true, b.score
