@@ -354,14 +354,33 @@ func (b *Board) WeightedSum() int {
 	return sum
 }
 
-func (b *Board) Utility() int {
+func Utility_OpenHeavy(b *Board) int {
 	//return (b.OpenCount() * 10) + b.Sum()
-	return (b.OpenCount() * b.OpenCount() * 20) + b.WeightedSum() + (b.score * 2)
+	oc := b.OpenCount()
+	return (oc * 2) + (b.score * 2)
 }
 
-type Solver func(*Board) (bool, int)
+func Utility_Score(b *Board) int {
+	return b.score
+}
 
-func LookaheadSolver(b *Board) (bool, int) {
+func AverPos(l []int) int {
+	count := len(l)
+	sum := 0
+	for _,v := range l {
+		if v >= 0 {
+			sum += v
+		} else {
+			count--
+		}
+	}
+	return sum / count
+}
+
+type Solver func(*Board, UtilityFunc) (bool, int)
+type UtilityFunc func(*Board) int
+
+func LookaheadSolver(b *Board, utility UtilityFunc) (bool, int) {
 	opts := make([]int, 4)
 	for !b.CheckWin() {
 		for i := 0; i < 4; i++ {
@@ -371,13 +390,16 @@ func LookaheadSolver(b *Board) (bool, int) {
 				opts[i] = -1
 			} else {
 				//Initial attempt, score based heuristic
-				opts[i] = nb.Utility()
+				opts[i] = utility(b)
 				subo := make([]int, 4)
 				for j := 0; j < 4; j++ {
-					nb := b.Copy()
-					nb.PlaceRandom()
-					nb.Round(j)
-					subo[j] = nb.Utility()
+					onb := b.Copy()
+					w := onb.Round(j)
+					if !w {
+						subo[j] = -1
+					} else {
+						subo[j] = utility(onb)
+					}
 				}
 				opts[i] = Aver(subo)
 			}
@@ -392,7 +414,7 @@ func LookaheadSolver(b *Board) (bool, int) {
 }
 
 //Left Down Right Down Left Down Right Down... (surprisingly good)
-func LDRDSolver(b *Board) (bool, int) {
+func LDRDSolver(b *Board, util UtilityFunc) (bool, int) {
 	for !b.CheckWin() {
 		a := b.Round(LEFT)
 		//b.PrintBoard()
@@ -417,7 +439,7 @@ func LDRDSolver(b *Board) (bool, int) {
 }
 
 //Looks for the best next move based on a heuristic
-func BestMoveSolver(b *Board) (bool, int) {
+func BestMoveSolver(b *Board, util UtilityFunc) (bool, int) {
 	opts := make([]int, 4)
 	for !b.CheckWin() {
 		for i := 0; i < 4; i++ {
@@ -428,7 +450,7 @@ func BestMoveSolver(b *Board) (bool, int) {
 			} else {
 				//Initial attempt, score based heuristic
 				//opts[i] = nb.score
-				opts[i] = nb.Utility()
+				opts[i] = util(nb)
 			}
 		}
 		b.Round(MaxI(opts))
@@ -449,7 +471,7 @@ func BestMoveSolver(b *Board) (bool, int) {
 
 //Play 'n' rounds of the game using the given solver
 //Returns #wins, best score, worst score, and average score
-func PlayN(n int, slvr Solver) (int,int,int,int) {
+func PlayN(n int, slvr Solver, utility UtilityFunc) (int,int,int,int) {
 	best := 0
 	worst := math.MaxInt32
 	sum := 0
@@ -458,7 +480,7 @@ func PlayN(n int, slvr Solver) (int,int,int,int) {
 	for i := 0; i < n; i++ {
 		b.PlaceRandom()
 		b.PlaceRandom()
-		w,s := slvr(b)
+		w,s := slvr(b, utility)
 		if w {
 			wins++
 		}
@@ -484,16 +506,17 @@ func Aver(l []int) int {
 }
 
 //Run a given solver algorithm for a set number of trials
-func RunTrials(slvr Solver) {
+func RunTrials(slvr Solver, utility UtilityFunc) {
 	done := make(chan bool)
-	num_th := 2
+	num_th := 4
+	run_per := 80
 	wins := make([]int,num_th)
 	bests := make([]int, num_th)
 	worsts := make([]int, num_th)
 	avs := make([]int, num_th)
 	for i := 0; i < num_th; i++ {
 		go func(n int) {
-			wins[n],bests[n],worsts[n],avs[n] = PlayN(30, slvr)
+			wins[n],bests[n],worsts[n],avs[n] = PlayN(run_per, slvr, utility)
 			done <- true
 		}(i)
 	}
@@ -510,7 +533,10 @@ func RunTrials(slvr Solver) {
 func main() {
 	runtime.GOMAXPROCS(2)
 	rand.Seed(time.Now().UnixNano())
-	RunTrials(LookaheadSolver)
+	fmt.Println("Lookahead Solver")
+	RunTrials(LookaheadSolver, Utility_OpenHeavy)
+	fmt.Println("Utility Based Solver")
+	RunTrials(BestMoveSolver, Utility_Score)
 }
 
 //If you just want to play the game...
