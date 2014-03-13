@@ -16,12 +16,14 @@ type Column struct {
 	I int
 	grid [][]int
 	rev bool
+	size int
 }
 
 type Row struct {
 	I int
 	grid [][]int
 	rev bool
+	size int
 }
 
 type Board struct {
@@ -109,6 +111,7 @@ func (b *Board) GetRow(i int, rev bool) *Row {
 	r.I = i
 	r.grid = b.tiles
 	r.rev = rev
+	r.size = b.size
 	return r
 }
 
@@ -129,7 +132,7 @@ func (r *Row) Set(i, v int) {
 }
 
 func (r *Row) Len() int {
-	return len(r.grid[r.I])
+	return r.size
 }
 
 func (b *Board) GetColumn(i int, rev bool) *Column {
@@ -137,6 +140,7 @@ func (b *Board) GetColumn(i int, rev bool) *Column {
 	c.I = i
 	c.grid = b.tiles
 	c.rev = rev
+	c.size = b.size
 	return c
 }
 
@@ -157,7 +161,7 @@ func (c *Column) Set(i, v int) {
 }
 
 func (c *Column) Len() int {
-	return len(c.grid[c.I])
+	return c.size
 }
 
 func (b *Board) PrintBoard() {
