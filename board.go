@@ -221,9 +221,7 @@ func (b *Board) Copy() *Board {
 	nb := NewBoard(b.size)
 	nb.score = b.score
 	for i,rs := range b.tiles {
-		for j,v := range rs {
-			nb.tiles[i][j] = v
-		}
+		copy(nb.tiles[i], rs)
 	}
 	return nb
 }
@@ -326,5 +324,13 @@ func (b *Board) WeightedSum() int {
 		}
 	}
 	return sum
+}
+
+func (b *Board) SetTo(ob *Board) {
+	b.score = ob.score
+	b.size = ob.size
+	for i,rs := range ob.tiles {
+		copy(b.tiles[i], rs)
+	}
 }
 

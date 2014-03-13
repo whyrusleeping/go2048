@@ -8,21 +8,24 @@ func LookaheadSolver(b *Board, utility UtilityFunc) (bool, int) {
 	for !b.CheckWin() {
 		opts := make([]int, 4)
 		for i := 0; i < 4; i++ {
-			for j := 0; j < 16; j++ {
-				nb := b.Copy()
+			nb := b.Copy()
+			for j := 0; j < 10; j++ {
 				c := nb.Round(i)
-				if !c || nb.CheckLoss() {
-					break
+				if !c {
+				} else if nb.CheckLoss() {
+					opts[i] += 1
 				} else {
 					//Initial attempt, score based heuristic
+					snb := nb.Copy()
 					for k := 0; k < 4; k++ {
-						snb := nb.Copy()
 						mov := snb.Round(k)
 						if mov {
 							opts[i] += utility(snb)
 						}
+						snb.SetTo(nb)
 					}
 				}
+				nb.SetTo(b)
 			}
 		}
 		act := b.Round(MaxI(opts))
