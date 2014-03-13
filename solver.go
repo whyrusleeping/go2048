@@ -4,29 +4,42 @@ import "fmt"
 
 type Solver func(*Board, UtilityFunc) (bool, int)
 
+func UtilityForMove(b *Board, utility UtilityFunc, direction, depth int) int {
+	rval := 0
+	nb := b.Copy()
+	c := nb.Shift(direction)
+	if !c {
+		return 0
+	}
+	modnb := nb.Copy()
+	for j := 0; j < 10; j++ {
+		nb.PlaceRandom()
+		if nb.CheckLoss() {
+			rval += 1
+		} else {
+			snb := nb.Copy()
+			for k := 0; k < 4; k++ {
+				if depth > 0 {
+					rval += UtilityForMove(snb, utility, k, depth - 1)
+				} else {
+					mov := snb.Shift(k)
+					if mov {
+						rval += utility(snb)
+						snb.SetTo(nb)
+					}
+				}
+			}
+		}
+		nb.SetTo(modnb)
+	}
+	return rval / 10
+}
+
 func LookaheadSolver(b *Board, utility UtilityFunc) (bool, int) {
 	for !b.CheckWin() {
 		opts := make([]int, 4)
 		for i := 0; i < 4; i++ {
-			nb := b.Copy()
-			for j := 0; j < 10; j++ {
-				c := nb.Round(i)
-				if !c {
-				} else if nb.CheckLoss() {
-					opts[i] += 1
-				} else {
-					//Initial attempt, score based heuristic
-					snb := nb.Copy()
-					for k := 0; k < 4; k++ {
-						mov := snb.Round(k)
-						if mov {
-							opts[i] += utility(snb)
-						}
-						snb.SetTo(nb)
-					}
-				}
-				nb.SetTo(b)
-			}
+			opts[i] = UtilityForMove(b, utility, i, 1)
 		}
 		act := b.Round(MaxI(opts))
 		if !act {

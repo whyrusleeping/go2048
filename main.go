@@ -6,6 +6,9 @@ import (
 	"math/rand"
 	"math"
 	"time"
+
+	"os"
+	"runtime/pprof"
 )
 
 func MaxI(l []int) int {
@@ -84,8 +87,8 @@ func Aver(l []int) int {
 //Run a given solver algorithm for a set number of trials
 func RunTrials(slvr Solver, utility UtilityFunc) {
 	done := make(chan bool)
-	num_th := 2
-	run_per := 40
+	num_th := 4
+	run_per := 20
 	wins := make([]int,num_th)
 	bests := make([]int, num_th)
 	worsts := make([]int, num_th)
@@ -109,12 +112,16 @@ func RunTrials(slvr Solver, utility UtilityFunc) {
 func main() {
 	runtime.GOMAXPROCS(2)
 	rand.Seed(time.Now().UnixNano())
-	go func() {
-		time.Sleep(time.Second * 8)
-		//panic("Whats goin on?")
-	}()
+	fi,err := os.Create("prof.out")
+	if err != nil {
+		panic(err)
+	}
+	defer fi.Close()
+	pprof.StartCPUProfile(fi)
 	fmt.Println("Lookahead Solver")
-	RunTrials(LookaheadSolver, Utility_Score)
+	RunTrials(LookaheadSolver, Utility_OpenHeavy)
+	pprof.StopCPUProfile()
+
 	fmt.Println("Utility Based Solver")
 	RunTrials(BestMoveSolver, Utility_Score)
 	fmt.Println("LDRD Solver")

@@ -15,6 +15,7 @@ const (
 type Column struct {
 	I int
 	grid [][]int
+	col []int
 	rev bool
 	size int
 }
@@ -30,12 +31,17 @@ type Board struct {
 	tiles [][]int
 	size int
 	score int
+	r *Row
+	c *Column
+	//rng *rand.Rand
 }
 
 func NewBoard(size int) *Board {
 	b := new(Board)
 	b.size = size
 	b.tiles = make([][]int, size)
+	b.r = new(Row)
+	b.c = new(Column)
 	for i,_ := range b.tiles {
 		b.tiles[i] = make([]int, size)
 	}
@@ -56,6 +62,19 @@ func (b *Board) PlaceRandom() {
 			return
 		}
 	}
+	/*
+	if b.rng.Intn(100) >= 90 {
+		num = 4
+	}
+	for {
+		x := b.rng.Intn(b.size)
+		y := b.rng.Intn(b.size)
+		if b.tiles[x][y] == 0 {
+			b.tiles[x][y] = num
+			return
+		}
+	}
+	*/
 }
 
 func (b *Board) Reset() {
@@ -78,7 +97,7 @@ type Iter interface {
 func Shift(it Iter) (bool, int) {
 	change := false
 	score := 0
-	for i := 0; i < it.Len(); i++ {
+	for i := 0; i < it.Len() - 1; i++ {
 		if it.At(i) == 0 {
 			for j := i + 1; j < it.Len(); j++ {
 				if it.At(j) != 0 {
@@ -107,17 +126,16 @@ func Shift(it Iter) (bool, int) {
 }
 
 func (b *Board) GetRow(i int, rev bool) *Row {
-	r := new(Row)
-	r.I = i
-	r.grid = b.tiles
-	r.rev = rev
-	r.size = b.size
-	return r
+	b.r.I = i
+	b.r.grid = b.tiles
+	b.r.rev = rev
+	b.r.size = b.size
+	return b.r
 }
 
 func (r *Row) At(i int) int {
 	if r.rev {
-		return r.grid[len(r.grid[r.I]) - (1 + i)][r.I]
+		return r.grid[r.size - (1 + i)][r.I]
 	} else {
 		return r.grid[i][r.I]
 	}
@@ -125,7 +143,7 @@ func (r *Row) At(i int) int {
 
 func (r *Row) Set(i, v int) {
 	if r.rev {
-		r.grid[len(r.grid[r.I]) - (1 + i)][r.I] = v
+		r.grid[r.size - (1 + i)][r.I] = v
 	} else {
 		r.grid[i][r.I] = v
 	}
@@ -136,27 +154,29 @@ func (r *Row) Len() int {
 }
 
 func (b *Board) GetColumn(i int, rev bool) *Column {
-	c := new(Column)
-	c.I = i
-	c.grid = b.tiles
-	c.rev = rev
-	c.size = b.size
-	return c
+	b.c.col = b.tiles[i]
+	b.c.rev = rev
+	b.c.size = b.size
+	return b.c
 }
 
 func (c *Column) At(i int) int {
 	if c.rev {
-		return c.grid[c.I][len(c.grid[c.I]) - (1 + i)]
+		//return c.grid[c.I][c.size - (1 + i)]
+		return c.col[c.size - (1 + i)]
 	} else {
-		return c.grid[c.I][i]
+		//return c.grid[c.I][i]
+		return c.col[i]
 	}
 }
 
 func (c *Column) Set(i, v int) {
 	if c.rev {
-		c.grid[c.I][len(c.grid[c.I]) - (1 + i)] = v
+		//c.grid[c.I][c.size - (1 + i)] = v
+		c.col[c.size - (1 + i)] = v
 	} else {
-		c.grid[c.I][i] = v
+		//c.grid[c.I][i] = v
+		c.col[i] = v
 	}
 }
 
@@ -222,8 +242,17 @@ func (b *Board) Down() bool {
 
 //Produce a new copy of the board
 func (b *Board) Copy() *Board {
-	nb := NewBoard(b.size)
+	//nb := NewBoard(b.size)
+	nb := new(Board)
+	nb.size = b.size
+	nb.c = new(Column)
+	nb.r = new(Row)
+	nb.tiles = make([][]int, b.size)
+	for i,_ := range nb.tiles {
+		nb.tiles[i] = make([]int, b.size)
+	}
 	nb.score = b.score
+	//nb.rng = b.rng
 	for i,rs := range b.tiles {
 		copy(nb.tiles[i], rs)
 	}
@@ -232,6 +261,9 @@ func (b *Board) Copy() *Board {
 
 //Did the player win?
 func (b *Board) CheckWin() bool {
+	if b.score < 16000 { //Approx value, too lazy to find a better one
+		return false
+	}
 	for _,r := range b.tiles {
 		for _,v := range r {
 			if v == 2048 {
@@ -240,6 +272,22 @@ func (b *Board) CheckWin() bool {
 		}
 	}
 	return false
+}
+
+func (b *Board) Shift(i int) bool {
+	switch i {
+	case UP:
+		return b.Up()
+	case RIGHT:
+		return b.Right()
+	case DOWN:
+		return b.Down()
+	case LEFT:
+		return b.Left()
+	default:
+		fmt.Println("Invalid Key")
+		return false
+	}
 }
 
 func (b *Board) Round(i int) bool {
