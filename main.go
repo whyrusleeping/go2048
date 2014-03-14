@@ -87,7 +87,7 @@ func Aver(l []int) int {
 //Run a given solver algorithm for a set number of trials
 func RunTrials(slvr Solver, utility UtilityFunc) {
 	done := make(chan bool)
-	num_th := 1
+	num_th := 8
 	run_per := 20
 	wins := make([]int,num_th)
 	bests := make([]int, num_th)
@@ -110,7 +110,7 @@ func RunTrials(slvr Solver, utility UtilityFunc) {
 }
 
 func main() {
-	runtime.GOMAXPROCS(2)
+	runtime.GOMAXPROCS(9)
 	rand.Seed(time.Now().UnixNano())
 	fi,err := os.Create("prof.out")
 	if err != nil {

@@ -18,6 +18,7 @@ type Column struct {
 	col []int
 	rev bool
 	size int
+	alt int
 }
 
 type Row struct {
@@ -25,6 +26,7 @@ type Row struct {
 	grid [][]int
 	rev bool
 	size int
+	alt int
 }
 
 type Board struct {
@@ -92,6 +94,7 @@ type Iter interface {
 	At(int) int
 	Set(int, int)
 	Len() int
+	Comp(int,int) bool
 }
 
 func Shift(it Iter) (bool, int) {
@@ -111,7 +114,7 @@ func Shift(it Iter) (bool, int) {
 		if it.At(i) != 0 {
 			for j := i + 1; j < it.Len(); j++ {
 				if it.At(j) != 0 {
-					if it.At(j) == it.At(i) {
+					if it.Comp(i,j) {
 						it.Set(i, it.At(i) * 2)
 						score += it.At(i)
 						it.Set(j, 0)
@@ -130,12 +133,15 @@ func (b *Board) GetRow(i int, rev bool) *Row {
 	b.r.grid = b.tiles
 	b.r.rev = rev
 	b.r.size = b.size
+	if rev {
+		b.r.alt = b.size - 1
+	}
 	return b.r
 }
 
 func (r *Row) At(i int) int {
 	if r.rev {
-		return r.grid[r.size - (1 + i)][r.I]
+		return r.grid[r.alt - i][r.I]
 	} else {
 		return r.grid[i][r.I]
 	}
@@ -143,7 +149,7 @@ func (r *Row) At(i int) int {
 
 func (r *Row) Set(i, v int) {
 	if r.rev {
-		r.grid[r.size - (1 + i)][r.I] = v
+		r.grid[r.alt - i][r.I] = v
 	} else {
 		r.grid[i][r.I] = v
 	}
@@ -153,35 +159,50 @@ func (r *Row) Len() int {
 	return r.size
 }
 
+func (r *Row) Comp(i,j int) bool {
+	if r.rev {
+		return r.grid[r.alt - i][r.I] == r.grid[r.alt - j][r.I]
+	} else {
+		return r.grid[i][r.I] == r.grid[j][r.I]
+	}
+}
+
 func (b *Board) GetColumn(i int, rev bool) *Column {
 	b.c.col = b.tiles[i]
 	b.c.rev = rev
 	b.c.size = b.size
+	if rev {
+		b.c.alt = b.size - 1
+	}
 	return b.c
 }
 
 func (c *Column) At(i int) int {
 	if c.rev {
-		//return c.grid[c.I][c.size - (1 + i)]
-		return c.col[c.size - (1 + i)]
+		return c.col[c.alt - i]
 	} else {
-		//return c.grid[c.I][i]
 		return c.col[i]
 	}
 }
 
 func (c *Column) Set(i, v int) {
 	if c.rev {
-		//c.grid[c.I][c.size - (1 + i)] = v
-		c.col[c.size - (1 + i)] = v
+		c.col[c.alt - i] = v
 	} else {
-		//c.grid[c.I][i] = v
 		c.col[i] = v
 	}
 }
 
 func (c *Column) Len() int {
 	return c.size
+}
+
+func (c *Column) Comp(i,j int) bool {
+	if c.rev {
+		return c.col[c.alt - i] == c.col[c.alt - j]
+	} else {
+		return c.col[i] == c.col[j]
+	}
 }
 
 func (b *Board) PrintBoard() {

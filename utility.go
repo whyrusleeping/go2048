@@ -21,13 +21,13 @@ func Utility_Corner(b *Board) int {
 				if v > max {
 					max = v
 				}
-				posw := (j+1) + ((i + 1) * 3)
+				posw := (j+1) + ((i + 1) * 4)
 				val += (posw * v)
 			}
 		}
 	}
 	if b.tiles[b.size-1][b.size-1] != max {
-		val -= max * 3
+		val -= max * 6
 	}
 	return val
 }

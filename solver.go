@@ -6,7 +6,7 @@ type Solver func(*Board, UtilityFunc) (bool, int)
 
 func UtilityForMove(b *Board, utility UtilityFunc, direction, depth int) int {
 	rval := 0
-	count := 5
+	count := 6
 	nb := b.Copy()
 	c := nb.Shift(direction)
 	if !c {
