@@ -48,6 +48,7 @@ func LookaheadSolver(b *Board, utility UtilityFunc) (bool, int) {
 			fmt.Println(opts)
 			fmt.Println(MaxI(opts))
 			b.PrintBoard()
+			panic("Bad Move!")
 		}
 
 		if b.CheckLoss() {
