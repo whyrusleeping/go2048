@@ -6,13 +6,14 @@ type Solver func(*Board, UtilityFunc) (bool, int)
 
 func UtilityForMove(b *Board, utility UtilityFunc, direction, depth int) int {
 	rval := 0
+	count := 5
 	nb := b.Copy()
 	c := nb.Shift(direction)
 	if !c {
 		return 0
 	}
 	modnb := nb.Copy()
-	for j := 0; j < 10; j++ {
+	for j := 0; j < count; j++ {
 		nb.PlaceRandom()
 		if nb.CheckLoss() {
 			rval += 1
@@ -32,7 +33,7 @@ func UtilityForMove(b *Board, utility UtilityFunc, direction, depth int) int {
 		}
 		nb.SetTo(modnb)
 	}
-	return rval / 10
+	return rval / count
 }
 
 func LookaheadSolver(b *Board, utility UtilityFunc) (bool, int) {

@@ -87,7 +87,7 @@ func Aver(l []int) int {
 //Run a given solver algorithm for a set number of trials
 func RunTrials(slvr Solver, utility UtilityFunc) {
 	done := make(chan bool)
-	num_th := 4
+	num_th := 1
 	run_per := 20
 	wins := make([]int,num_th)
 	bests := make([]int, num_th)
@@ -119,7 +119,7 @@ func main() {
 	defer fi.Close()
 	pprof.StartCPUProfile(fi)
 	fmt.Println("Lookahead Solver")
-	RunTrials(LookaheadSolver, Utility_OpenHeavy)
+	RunTrials(LookaheadSolver, Utility_Corner)
 	pprof.StopCPUProfile()
 
 	fmt.Println("Utility Based Solver")
