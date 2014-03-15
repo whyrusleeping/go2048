@@ -9,6 +9,8 @@ import (
 
 	"os"
 	"runtime/pprof"
+
+	"github.com/nsf/termbox-go"
 )
 
 func MaxI(l []int) int {
@@ -87,8 +89,8 @@ func Aver(l []int) int {
 //Run a given solver algorithm for a set number of trials
 func RunTrials(slvr Solver, utility UtilityFunc) {
 	done := make(chan bool)
-	num_th := 8
-	run_per := 20
+	num_th := 2
+	run_per := 5
 	wins := make([]int,num_th)
 	bests := make([]int, num_th)
 	worsts := make([]int, num_th)
@@ -109,8 +111,8 @@ func RunTrials(slvr Solver, utility UtilityFunc) {
 	fmt.Printf("Average: %d\n", Aver(avs))
 }
 
-func main() {
-	runtime.GOMAXPROCS(9)
+func aimain() {
+	runtime.GOMAXPROCS(2)
 	rand.Seed(time.Now().UnixNano())
 	fi,err := os.Create("prof.out")
 	if err != nil {
@@ -128,32 +130,70 @@ func main() {
 	RunTrials(LDRDSolver, nil)
 }
 
+func draw_all() {
+	termbox.Clear(termbox.ColorDefault, termbox.ColorDefault)
+	termbox.Flush()
+}
+
+func print_wide(x, y int, s string) {
+	c := termbox.ColorDefault
+	for _, r := range s {
+		termbox.SetCell(x, y, r, termbox.ColorDefault, c)
+		x++
+	}
+}
+
+func TboxPrintBoard(b *Board) {
+	s := fmt.Sprintf("Score: %d", b.score)
+	print_wide(0,0,s)
+	for i, r := range b.tiles {
+		for j, v := range r {
+			s = fmt.Sprintf("|%3d", v)
+			print_wide(j*4,i+1,s)
+		}
+		print_wide(16,i,"|")
+	}
+}
 //If you just want to play the game...
-func plmain() {
+func main() {
+	err := termbox.Init()
+	if err != nil {
+		panic(err)
+	}
+	defer termbox.Close()
 	rand.Seed(time.Now().UnixNano())
 	b := NewBoard(4)
 	b.PlaceRandom()
 	b.PlaceRandom()
-	b.PrintBoard()
-	var s string
+	draw_all()
+	TboxPrintBoard(b)
 	for !b.CheckWin() {
-		fmt.Scanf("%s", &s)
-		if len(s) == 0 {
-			continue
-		}
-		switch s[0] {
-			case 'w':
+		switch ev := termbox.PollEvent(); ev.Type {
+		case termbox.EventKey:
+			switch ev.Key {
+			case termbox.KeyArrowUp:
 				b.Round(0)
-			case 'a':
-				b.Round(3)
-			case 's':
-				b.Round(2)
-			case 'd':
+				TboxPrintBoard(b)
+			case termbox.KeyArrowRight:
 				b.Round(1)
-			default:
-				fmt.Println("Invalid Key")
+				TboxPrintBoard(b)
+			case termbox.KeyArrowDown:
+				b.Round(2)
+				TboxPrintBoard(b)
+			case termbox.KeyArrowLeft:
+				b.Round(3)
+				TboxPrintBoard(b)
+			case termbox.KeyEsc:
+				return
+			}
+		case termbox.EventResize:
+			draw_all()
 		}
-		fmt.Printf("Score: %d\n", b.score)
-		b.PrintBoard()
+		if b.CheckLoss() {
+			print_wide(0,6,"You Lose!")
+			return
+		}
+		termbox.Flush()
 	}
+	print_wide(0,6,"You win!!")
 }

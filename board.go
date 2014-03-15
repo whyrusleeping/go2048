@@ -102,7 +102,8 @@ type Iter interface {
 func Shift(it Iter) (bool, int) {
 	change := false
 	score := 0
-	for i := 0; i < it.Len() - 1; i++ {
+	ll := it.Len() - 1
+	for i := 0; i < ll; i++ {
 		ch := it.SlideNext(i)
 		//change = change || it.SlideNext(i)
 		/*
@@ -118,15 +119,15 @@ func Shift(it Iter) (bool, int) {
 		}
 		//*/
 		//*
-		if !ch && it.At(i) == 0 {
+		ival := it.At(i)
+		if !ch && ival == 0 {
 			return change,score
 		}
 		change = change || ch
 		//change = true
 		//*/
-		ival := it.At(i)
 		if ival != 0 {
-			for j := i + 1; j < it.Len(); j++ {
+			for j := i + 1; j <= ll; j++ {
 				jval := it.At(j)
 				if jval != 0 {
 					if ival == jval {
@@ -188,8 +189,8 @@ func (r *Row) SlideNext(i int) bool {
 			for j := i + 1; j < r.size; j++ {
 				jv := r.grid[r.alt-j][r.I]
 				if jv != 0 {
-					r.Set(i,jv)
-					r.Set(j,0)
+					r.grid[r.alt-i][r.I] = jv
+					r.grid[r.alt-j][r.I] = 0
 					return true
 				}
 			}
@@ -248,14 +249,27 @@ func (c *Column) Comp(i,j int) bool {
 }
 
 func (c *Column) SlideNext(i int) bool {
-	if c.At(i) == 0 {
-		for j := i + 1; j < c.Len(); j++ {
-			if c.At(j) != 0 {
-				c.Set(i,c.At(j))
-				c.Set(j,0)
-				return true
+	if c.rev {
+		if c.col[c.alt - i] == 0 {
+			for j := i + 1; j < c.size; j++ {
+				if c.col[c.alt - j] != 0 {
+					c.col[c.alt-i] = c.col[c.alt-j]
+					c.col[c.alt-j] = 0
+					return true
+				}
 			}
 		}
+	} else {
+		if c.col[i] == 0 {
+			for j := i + 1; j < c.size; j++ {
+				if c.col[j] != 0 {
+					c.col[i] = c.col[j]
+					c.col[j] = 0
+					return true
+				}
+			}
+		}
+
 	}
 	return false
 }

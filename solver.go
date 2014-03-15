@@ -8,6 +8,7 @@ func UtilityForMove(b *Board, utility UtilityFunc, direction, depth int) int {
 	rval := 0
 	count := 6
 	nb := b.Copy()
+	snb := nb.Copy()
 	c := nb.Shift(direction)
 	if !c {
 		return 0
@@ -16,9 +17,10 @@ func UtilityForMove(b *Board, utility UtilityFunc, direction, depth int) int {
 	for j := 0; j < count; j++ {
 		nb.PlaceRandom()
 		if nb.CheckLoss() {
-			rval += 1
+			rval += utility(nb)
 		} else {
-			snb := nb.Copy()
+			//snb := nb.Copy()
+			snb.SetTo(nb)
 			for k := 0; k < 4; k++ {
 				if depth > 0 {
 					rval += UtilityForMove(snb, utility, k, depth - 1)

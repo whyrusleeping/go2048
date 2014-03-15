@@ -2,6 +2,6 @@ package main
 
 import "testing"
 
-func BenchmarkLookahead(b *testing.B) {
+func BenchmarkLookaheadSolve(b *testing.B) {
 	PlayN(b.N, LookaheadSolver, Utility_Score)
 }
